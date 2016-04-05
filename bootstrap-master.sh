@@ -4,9 +4,9 @@
 # Based on https://github.com/garystafford/multi-vagrant-puppet-vms.git
 
 # config
-puppet_bin = "/etc/puppetlabs/bin"
-puppet_env = "/etc/puppetlabs/code/environments/production"
-heira_dir = "/etc/puppetlabs/code"
+puppet_bin="/opt/puppetlabs/bin"
+puppet_env="/etc/puppetlabs/code/environments/production"
+heira_dir="/etc/puppetlabs/code"
 
 # Run on VM to bootstrap Puppet Master server
 
@@ -28,24 +28,20 @@ heira_dir = "/etc/puppetlabs/code"
   echo "# Install puppet modules we will be using"
   sudo $puppet_bin/puppet module install puppetlabs-ntp --modulepath $puppet_env/modules
   sudo $puppet_bin/puppet module install jfryman-nginx --modulepath $puppet_env/modules
-  sudo $puppet_bin/puppet module uninstall puppetlabs-git --modulepath $puppet_env/modules
-  sudo $puppet_bin/puppet module install puppetlabs-vcsrepo --modulepath $puppet_env/modules
-  sudo $puppet_bin/puppet module install mayflower-php --modulepath $puppet_env/modules
 
   echo "# Create directory for classes"
-  sudo mkdir $puppet_env/modules/profiles/
-  sudo mkdir $puppet_env/modules/roles/
+  sudo mkdir -p $puppet_env/modules/profiles/manifests
+  sudo mkdir -p $puppet_env/modules/roles/manifests
 
-  echo "# create directory for nodes
-  sudo mkdir $puppet_env/hieradata/nodes
+  echo "# create directory for nodes"
+  sudo mkdir -p $puppet_env/hieradata/nodes
 
   # symlink manifest and yaml configs from Vagrant synced folder location
   echo "# Symlink for site.pp" |sudo ln -s /vagrant/site.pp $puppet_env/manifests/site.pp
   echo "# Delete stock hiera config" |sudo rm $heira_dir/hiera.yaml
   echo "# Symlink to our custom hiera config" |sudo ln -s /vagrant/hiera.yaml $heira_dir/hiera.yaml
-  echo "# Symlink to www manifest" |sudo ln -s /vagrant/www.pp $puppet_env/modules/roles/profiles/manifests/www.pp
+  echo "# Symlink to www manifest" |sudo ln -s /vagrant/www.pp $puppet_env/modules/roles/manifests/www.pp
   echo "# Symlink to nginix manifest" |sudo ln -s /vagrant/ngnix.pp $puppet_env/modules/profiles/manifests/nginix.pp
-  echo "# Symlink to vcsrepo manifest" |sudo ln -s /vagrant/www.pp $puppet_env/modules/profiles/manifests/vcsrepo.pp
   echo "# Symlink to node01 yaml config" |sudo ln -s /vagrant/node01.example.com.yaml $puppet_env/hieradata/nodes/node01.example.com.yaml
   echo "# Symlink to common yaml config" |sudo ln -s /vagrant/common.yaml $puppet_env/hieradata/common.yaml
 
