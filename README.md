@@ -49,6 +49,10 @@ Used by Vagrant and VirtualBox. To create additional forwarding ports, add them 
         }
       ]
 ```
+
+#### Sources of Inspiration
+1. [Bootstrapping Puppet Master Multi-node](http://wp.me/p1RD28-1kX)
+2. [Deploying nginix with Puppet](https://blog.serverdensity.com/deploying-nginx-with-puppet/)
 #### Useful Multi-VM Commands
 The use of the specific <machine> name is optional.
 * `vagrant up <machine>`
@@ -61,3 +65,37 @@ The use of the specific <machine> name is optional.
 * `sudo tail -50 /var/log/syslog`
 * `sudo tail -50 /var/log/puppet/masterhttp.log`
 * `tail -50 ~/VirtualBox\ VMs/postblog/<machine>/Logs/VBox.log'
+
+### Instructions for executing the solution
+```
+vagrant up # brings up all VMs
+vagrant ssh puppet.example.com
+
+sudo service puppetmaster status # test that puppet master was installed
+sudo service puppetmaster stop
+
+sudo puppet master --verbose --no-daemonize
+
+# Shift+Ctrl+T # new tab on host
+vagrant ssh node01.example.com # ssh into agent node
+sudo service puppet status # test that agent was installed
+sudo puppet agent --test --waitforcert=60 # initiate certificate signing request (CSR)
+```
+Back on the Puppet Master server (puppet.example.com)
+```
+sudo puppet cert list # should see 'node01.example.com' cert waiting for signature
+sudo puppet cert sign --all # sign the agent node(s) cert(s)
+sudo puppet cert list --all # check for signed cert(s)
+```
+
+
+#### Questions
+ 1. Describe the most difficult/painful hurdle you had to overcome in implementing your solution.
+
+ 2. Describe which puppet related concept you think is the hardest for new users to grasp.
+
+ 3. Please comment on the concept embodied by the second requirement of the solution(ii)
+
+ 4. Where did you go to find information to help you in the build process?
+
+ 5. In a couple paragraphs explain what automation means to you and why it is important to an organization's infrastructure design strategy.

@@ -1,34 +1,53 @@
 #!/bin/sh
 
+# Author Dan Carr (ddcarr@gmail.com)
+# Based on https://github.com/garystafford/multi-vagrant-puppet-vms.git
+
+# config
+puppet_bin = "/etc/puppetlabs/bin"
+puppet_env = "/etc/puppetlabs/code/environments/production"
+heira_dir = "/etc/puppetlabs/code"
+
 # Run on VM to bootstrap Puppet Master server
 
-if ps aux | grep "puppet master" | grep -v grep 2> /dev/null
-then
-    echo "Puppet Master is already installed. Exiting..."
-else
-    # Install Puppet Master
-    wget https://apt.puppetlabs.com/puppetlabs-release-trusty.deb && \
-    sudo dpkg -i puppetlabs-release-trusty.deb && \
-    sudo apt-get update -yq && sudo apt-get upgrade -yq && \
-    sudo apt-get install -yq puppetmaster
+  echo "# Get appropriate packages and install puppet"
+  wget https://apt.puppetlabs.com/puppetlabs-release-pc1-precise.deb
+  sudo dpkg -i puppetlabs-release-pc1-precise.deb && \
+  sudo apt-get update -yq && sudo apt-get upgrade -yq && \
+  sudo apt-get install -yq puppetserver
 
-    # Configure /etc/hosts file
-    echo "" | sudo tee --append /etc/hosts 2> /dev/null && \
-    echo "# Host config for Puppet Master and Agent Nodes" | sudo tee --append /etc/hosts 2> /dev/null && \
-    echo "192.168.32.5    puppet.example.com  puppet" | sudo tee --append /etc/hosts 2> /dev/null && \
-    echo "192.168.32.10   node01.example.com  node01" | sudo tee --append /etc/hosts 2> /dev/null && \
-    echo "192.168.32.20   node02.example.com  node02" | sudo tee --append /etc/hosts 2> /dev/null
+  # Configure /etc/hosts file
+  echo "" | sudo tee --append /etc/hosts 2> /dev/null && \
+  echo "# Host config for Puppet Master and Agent Nodes" | sudo tee --append /etc/hosts 2> /dev/null && \
+  echo "192.168.32.5    puppet.example.com  puppet" | sudo tee --append /etc/hosts 2> /dev/null && \
+  echo "192.168.32.10   node01.example.com  node01" | sudo tee --append /etc/hosts 2> /dev/null && \
 
-    # Add optional alternate DNS names to /etc/puppet/puppet.conf
-    sudo sed -i 's/.*\[main\].*/&\ndns_alt_names = puppet,puppet.example.com/' /etc/puppet/puppet.conf
+  # Add optional alternate DNS names to /etc/puppet/puppet.conf
+  sudo sed -i 's/.*\[main\].*/&\ndns_alt_names = puppet,puppet.example.com/' /etc/puppetlabs/puppet/puppet.conf
 
-    # Install some initial puppet modules on Puppet Master server
-    sudo puppet module install puppetlabs-ntp
-    sudo puppet module install garethr-docker
-    sudo puppet module install puppetlabs-git
-    sudo puppet module install puppetlabs-vcsrepo
-    sudo puppet module install garystafford-fig
+  echo "# Install puppet modules we will be using"
+  sudo $puppet_bin/puppet module install puppetlabs-ntp --modulepath $puppet_env/modules
+  sudo $puppet_bin/puppet module install jfryman-nginx --modulepath $puppet_env/modules
+  sudo $puppet_bin/puppet module uninstall puppetlabs-git --modulepath $puppet_env/modules
+  sudo $puppet_bin/puppet module install puppetlabs-vcsrepo --modulepath $puppet_env/modules
+  sudo $puppet_bin/puppet module install mayflower-php --modulepath $puppet_env/modules
 
-    # symlink manifest from Vagrant synced folder location
-    ln -s /vagrant/site.pp /etc/puppet/manifests/site.pp
-fi
+  echo "# Create directory for classes"
+  sudo mkdir $puppet_env/modules/profiles/
+  sudo mkdir $puppet_env/modules/roles/
+
+  echo "# create directory for nodes
+  sudo mkdir $puppet_env/hieradata/nodes
+
+  # symlink manifest and yaml configs from Vagrant synced folder location
+  echo "# Symlink for site.pp" |sudo ln -s /vagrant/site.pp $puppet_env/manifests/site.pp
+  echo "# Delete stock hiera config" |sudo rm $heira_dir/hiera.yaml
+  echo "# Symlink to our custom hiera config" |sudo ln -s /vagrant/hiera.yaml $heira_dir/hiera.yaml
+  echo "# Symlink to www manifest" |sudo ln -s /vagrant/www.pp $puppet_env/modules/roles/profiles/manifests/www.pp
+  echo "# Symlink to nginix manifest" |sudo ln -s /vagrant/ngnix.pp $puppet_env/modules/profiles/manifests/nginix.pp
+  echo "# Symlink to vcsrepo manifest" |sudo ln -s /vagrant/www.pp $puppet_env/modules/profiles/manifests/vcsrepo.pp
+  echo "# Symlink to node01 yaml config" |sudo ln -s /vagrant/node01.example.com.yaml $puppet_env/hieradata/nodes/node01.example.com.yaml
+  echo "# Symlink to common yaml config" |sudo ln -s /vagrant/common.yaml $puppet_env/hieradata/common.yaml
+
+  # Start puppetserver
+  echo "# Starting the puppetserver" | sudo service puppetserver start

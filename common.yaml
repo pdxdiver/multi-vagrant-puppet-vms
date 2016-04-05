@@ -1,0 +1,3 @@
+# Ensure git is installed for every server
+---
+git::

@@ -1,0 +1,7 @@
+---
+roles:
+  - roles::www
+    landing::myFile: "/opt/www/html"
+    #  landingPage: "%{::trusted.certname}"
+    #  docRoot: "/opt/www/html/"
+    #  myNode: 8000
